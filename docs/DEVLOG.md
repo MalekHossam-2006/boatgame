@@ -139,3 +139,43 @@ and no start screen.
 - `ShipController.cs`: new `Sink()`. The ship stops, and over 3 seconds the model goes
   down 4 units and tips over (clear visual feedback that you lost).
 - `MoneyBarrel.cs`: barrels can only be collected while `Playing`.
+
+---
+
+## Step 5 - Start, win and lose screens
+
+**File:** `Assets/Scripts/UI/GameHud.cs` (same simple IMGUI HUD as before).
+
+- **Start screen:** dark overlay with the title, the goal (small barrels +10 near the
+  start, big barrels +50 far out), the danger (a pirate ship guards the open sea, you are
+  safe inside the red buoys), the controls, and a pulsing "Press SPACE to start".
+  This covers *onboarding* and *clear goals and rules* from the guidelines.
+- **Win screen:** "You collected every barrel!" + final money + "press R to play again".
+- **Lose screen:** "The pirates sank your ship!" + money collected + "press R to play again".
+- **Chase warning:** while the enemy is chasing you, a red pulsing
+  "PIRATES ARE CHASING YOU!" appears at the top of the screen (feedback).
+
+## Step 6 - The enemy pirate ship
+
+**File:** `Assets/Scripts/Enemy/EnemyShipAI.cs`
+
+The enemy uses the same `ShipController` as the player (same movement and floating),
+and a small state machine decides its throttle and steering:
+
+| Mode | Behaviour |
+|---|---|
+| **Patrol** | Sails around a circle of radius 80, where the big +50 barrels are, at 60% speed. It aims at a point a little ahead on the circle. |
+| **Chase** | Starts when the player comes within **25** units and is outside the safe zone. Full speed toward the player. |
+| **Back to patrol** | When the player is more than **45** units away, or reaches the safe zone. |
+| **Catch** | Chasing and closer than **4.5** units: calls `GameState.Lose()`, which sinks the player's ship. |
+
+Other rules:
+- The enemy is **slower** (max speed 8) than the player (10) and turns slower
+  (55 vs 70 deg/s), so a player who reacts early can escape. Getting stuck near an
+  island is how you get caught.
+- It never enters the safe zone (radius 28 around the start).
+- **Obstacle avoidance:** a sphere cast 14 units ahead; if it hits an island or rock,
+  the ship steers away from it, more strongly the closer it is.
+- `EnemyShipAI.AnyChasing` tells the HUD to show the chase warning.
+
+These numbers are a first guess and will be tuned after playtesting.

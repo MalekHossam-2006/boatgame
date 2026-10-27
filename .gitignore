@@ -107,3 +107,8 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+ClaudeTools/out/
+
+# AI assistant scratch scripts (dev only)
+Assets/Editor/ClaudeScratch/
+Assets/Editor/ClaudeScratch.meta

@@ -32,7 +32,9 @@ public static class SeaMapBuilder
         var ship = CreatePlayerShip();
         ocean.follow = ship.transform;
         var world = CreateWorld();
+        CreateSafeZone();
         PlaceBarrels(world);
+        CreateEnemy(ship.transform);
 
         var cam = CreateCamera();
         var follow = cam.gameObject.AddComponent<TopDownCamera>();
@@ -41,6 +43,7 @@ public static class SeaMapBuilder
         cam.transform.position = ship.transform.position - cam.transform.forward * follow.distance;
 
         CreatePostVolume();
+        new GameObject("GameState").AddComponent<GameState>();
         var hud = new GameObject("HUD").AddComponent<GameHud>();
         hud.wallet = ship.GetComponent<PlayerWallet>();
         hud.ship = ship.GetComponent<ShipController>();
@@ -67,6 +70,62 @@ public static class SeaMapBuilder
         root.AddComponent<PlayerShipInput>();
         root.AddComponent<PlayerWallet>();
         return root;
+    }
+
+    // ------------------------------------------------------------------ enemy and safe zone
+    const float SafeZoneRadius = 28f;
+    const float PatrolRadius = 80f;
+
+    /// <summary>A pirate ship that patrols the outer ring, where the big barrels are.</summary>
+    static void CreateEnemy(Transform player)
+    {
+        var root = new GameObject("PirateShip");
+        var visual = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(Kit + "ship-pirate-medium.fbx"), root.transform);
+        visual.name = "Visual";
+        root.transform.position = new Vector3(0f, 0f, PatrolRadius);
+        root.transform.rotation = Quaternion.LookRotation(Vector3.left);   // tangent to the patrol circle
+
+        var controller = root.AddComponent<ShipController>();
+        controller.visual = visual.transform;
+        controller.mapRadius = MapRadius;
+        controller.maxSpeed = 8f;          // slower than the player (10) so escaping is possible
+        controller.turnRate = 55f;
+        controller.hullLength = 9f;
+
+        var ai = root.AddComponent<EnemyShipAI>();
+        ai.player = player;
+        ai.patrolRadius = PatrolRadius;
+        ai.safeZoneRadius = SafeZoneRadius;
+    }
+
+    /// <summary>Red buoys in a circle around the start: inside it the pirates will not follow you.</summary>
+    static void CreateSafeZone()
+    {
+        var parent = new GameObject("SafeZone").transform;
+        var red = LitMaterial("Buoy", new Color(0.85f, 0.18f, 0.15f), 0.4f);
+        var white = LitMaterial("BuoyStripe", new Color(0.95f, 0.95f, 0.92f), 0.4f);
+        const int count = 20;
+        for (int i = 0; i < count; i++)
+        {
+            float a = i * Mathf.PI * 2f / count;
+            var buoy = new GameObject("Buoy").transform;
+            buoy.SetParent(parent);
+            buoy.position = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * SafeZoneRadius;
+            Part(buoy, PrimitiveType.Cylinder, new Vector3(0f, 0.3f, 0f), new Vector3(1.1f, 0.6f, 1.1f), red);
+            Part(buoy, PrimitiveType.Cylinder, new Vector3(0f, 1.0f, 0f), new Vector3(0.5f, 0.25f, 0.5f), white);
+            Part(buoy, PrimitiveType.Sphere, new Vector3(0f, 1.45f, 0f), Vector3.one * 0.45f, red);
+            buoy.gameObject.AddComponent<Bobber>().offset = -0.2f;
+        }
+    }
+
+    static void Part(Transform parent, PrimitiveType type, Vector3 pos, Vector3 scale, Material mat)
+    {
+        var go = GameObject.CreatePrimitive(type);
+        Object.DestroyImmediate(go.GetComponent<Collider>());   // buoys are only a marker, the ship sails through
+        go.transform.SetParent(parent, false);
+        go.transform.localPosition = pos;
+        go.transform.localScale = scale;
+        go.GetComponent<MeshRenderer>().sharedMaterial = mat;
     }
 
     // ------------------------------------------------------------------ money barrels

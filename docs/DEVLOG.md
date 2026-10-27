@@ -179,3 +179,32 @@ Other rules:
 - `EnemyShipAI.AnyChasing` tells the HUD to show the chase warning.
 
 These numbers are a first guess and will be tuned after playtesting.
+
+---
+
+## Step 7 - Enemy and safe zone in the map
+
+**File:** `Assets/Editor/SceneBuilders/SeaMapBuilder.cs`, then the scene was rebuilt.
+
+- **GameState** object added to the scene.
+- **PirateShip:** the Kenney `ship-pirate-medium` model (bigger than the player's ship)
+  with `ShipController` (max speed 8, turn rate 55) and `EnemyShipAI`.
+  It starts at (0, 0, 80) on its patrol circle.
+- **SafeZone:** 20 red-and-white buoys in a circle of radius 28 around the start,
+  built from Unity primitives (cylinders + a sphere) with the new materials
+  `Assets/Materials/Buoy.mat` and `BuoyStripe.mat`. They float with `Bobber` and have
+  no colliders, so the player sails through them. They show where the enemy will not follow.
+
+**Map layout now (distance from the start):**
+```
+ 0 ---- 28 ------------------ 60 ------ 80 ------ 95
+ start  | safe zone ends       | big     | enemy   | map edge
+        | small barrels (12-70)| barrels | patrol  |
+```
+
+**Check:** Unity compiled with no errors. Automated test in Play mode through the
+editor bridge: the enemy patrols at speed 4.8, switches to Chase at speed 8 when the
+player is 15 units away, and follows the player. The full game (start screen, chase,
+being caught and sinking, restart) was played by hand in the editor.
+
+![Pirate ship chasing the player](images/pirate-chase.png)

@@ -87,3 +87,33 @@ planned for later milestones and would make the first prototype too complex.
 
 **Check:** entered Play mode and took a screenshot (ship floating on the waves).
 The movement (W/S, A/D, collisions with islands) was tested by hand in the editor.
+
+---
+
+## Step 3 - Money barrels and the score (money) system
+
+**Goal:** give the player something to do: barrels with money float around the map.
+Sailing into a barrel collects it and adds its money to the score.
+
+**New scripts:**
+| File | What it does |
+|---|---|
+| `Assets/Scripts/Score/PlayerWallet.cs` | Sits on the player ship and stores `Money` and `BarrelsCollected`. `Add(amount, position)` increases them and raises a `Collected` event, which the HUD listens to. |
+| `Assets/Scripts/Score/MoneyBarrel.cs` | On every barrel. Each frame it checks the horizontal distance to the ship; when the ship is closer than `pickupRadius`, it calls `PlayerWallet.Add(value)` and hides the barrel. A static `Remaining` counter tracks how many barrels are still floating. We used a distance check instead of physics triggers because the ship moves by script (no Rigidbody), and the check is simple to read. |
+| `Assets/Scripts/UI/GameHud.cs` | Simple on-screen HUD (Unity IMGUI): Money, Barrels collected / total, Speed and the controls. Shows a gold "+10" / "+50" that floats up and fades over each collected barrel (feedback), and an "All barrels collected!" message with the final money when the map is empty (press R to play again). |
+
+**Changes to the map builder (`SeaMapBuilder.cs`):**
+- The ship now also gets a `PlayerWallet`, and the scene gets a `HUD` object.
+- New `PlaceBarrels()` scatters **28 barrels** using the Kenney `barrel.fbx` model:
+  - **22 small barrels = +10 each**, placed 12-70 units from the start.
+  - **6 big barrels = +50 each**, bigger and spinning fast, placed far away
+    (60-87 units, near the map edge). This creates a risk/reward decision for the
+    player: collect the safe nearby barrels first, or make the long trip for the big ones.
+  - Barrels keep at least 10 units apart and stay away from islands and rocks.
+  - A fixed random seed (`7`) means the same layout every time the scene is built.
+  - Every barrel also gets a `Bobber`, so it floats on the waves.
+- Maximum score on this map: 22 x 10 + 6 x 50 = **520**.
+
+**Check:** Unity compiled with no errors. Rebuilt the scene (22 small + 6 big barrels
+confirmed in the scene file). Played it in the editor: money increases by +10 / +50,
+the floating popup appears and the barrel counter updates.

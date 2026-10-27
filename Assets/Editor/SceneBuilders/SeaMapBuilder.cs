@@ -31,7 +31,8 @@ public static class SeaMapBuilder
         var ocean = CreateOcean();
         var ship = CreatePlayerShip();
         ocean.follow = ship.transform;
-        CreateWorld();
+        var world = CreateWorld();
+        PlaceBarrels(world);
 
         var cam = CreateCamera();
         var follow = cam.gameObject.AddComponent<TopDownCamera>();
@@ -40,6 +41,9 @@ public static class SeaMapBuilder
         cam.transform.position = ship.transform.position - cam.transform.forward * follow.distance;
 
         CreatePostVolume();
+        var hud = new GameObject("HUD").AddComponent<GameHud>();
+        hud.wallet = ship.GetComponent<PlayerWallet>();
+        hud.ship = ship.GetComponent<ShipController>();
 
         EditorSceneManager.SaveScene(scene, ScenePath);
         // SeaMap becomes the first scene in the build
@@ -61,7 +65,49 @@ public static class SeaMapBuilder
         controller.visual = visual.transform;
         controller.mapRadius = MapRadius;
         root.AddComponent<PlayerShipInput>();
+        root.AddComponent<PlayerWallet>();
         return root;
+    }
+
+    // ------------------------------------------------------------------ money barrels
+    const int SmallBarrels = 22;
+    const int BigBarrels = 6;
+
+    /// <summary>
+    /// Scatters money barrels over the map. Small barrels (+10) are everywhere;
+    /// big barrels (+50) are placed far from the start, close to the map edge, so the
+    /// player has to decide whether the long trip is worth it.
+    /// A fixed random seed keeps the layout the same every time the scene is built.
+    /// </summary>
+    static void PlaceBarrels(Transform world)
+    {
+        var parent = new GameObject("MoneyBarrels").transform;
+        var blockers = world.GetComponentsInChildren<Collider>();
+        var placed = new List<Vector3>();
+        var rng = new System.Random(7);
+
+        int made = 0, tries = 0;
+        while (made < SmallBarrels + BigBarrels && tries++ < 5000)
+        {
+            bool big = made >= SmallBarrels;
+            float minR = big ? 60f : 12f, maxR = big ? MapRadius - 8f : 70f;
+            float a = (float)rng.NextDouble() * Mathf.PI * 2f;
+            float r = Mathf.Lerp(minR, maxR, Mathf.Sqrt((float)rng.NextDouble()));
+            var pos = new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r);
+
+            if (placed.Any(p => (p - pos).sqrMagnitude < 10f * 10f)) continue;
+            if (blockers.Any(c => (c.ClosestPoint(pos + Vector3.up) - (pos + Vector3.up)).sqrMagnitude < 5f * 5f)) continue;
+
+            var go = Place(Kit + "barrel.fbx", parent, pos + Vector3.down * 0.3f, a * Mathf.Rad2Deg, big ? 2f : 1.2f);
+            go.name = big ? "BigMoneyBarrel" : "MoneyBarrel";
+            var bob = go.AddComponent<Bobber>();
+            bob.spin = big ? 40f : 8f;          // big barrels spin fast so they stand out
+            var barrel = go.AddComponent<MoneyBarrel>();
+            barrel.value = big ? 50 : 10;
+            barrel.pickupRadius = big ? 3.8f : 3.2f;
+            placed.Add(pos);
+            made++;
+        }
     }
 
     // ------------------------------------------------------------------ environment

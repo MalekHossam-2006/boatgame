@@ -117,3 +117,25 @@ Sailing into a barrel collects it and adds its money to the score.
 **Check:** Unity compiled with no errors. Rebuilt the scene (22 small + 6 big barrels
 confirmed in the scene file). Played it in the editor: money increases by +10 / +50,
 the floating popup appears and the barrel counter updates.
+
+---
+
+## Step 4 - Game flow: start, playing, win, lose
+
+**Goal:** the midterm guidelines ask for clear win **and lose** conditions and a full
+game flow (start, gameplay, success/failure, restart). Until now there was no way to lose
+and no start screen.
+
+**How it was done:**
+- New `Assets/Scripts/Game/GameState.cs`: one object in the scene that holds the current
+  phase: `Start -> Playing -> Won / Lost`.
+  - **Space / Enter** on the start screen begins the game.
+  - **Won** when every barrel is collected (this check moved here from the HUD).
+  - **Lost** when the enemy calls `GameState.Lose()`.
+  - **R** restarts the level at any time. After a restart the start screen is skipped,
+    so retrying is fast.
+- `PlayerShipInput.cs`: the ship ignores the keyboard unless the phase is `Playing`.
+  R moved to `GameState`.
+- `ShipController.cs`: new `Sink()`. The ship stops, and over 3 seconds the model goes
+  down 4 units and tips over (clear visual feedback that you lost).
+- `MoneyBarrel.cs`: barrels can only be collected while `Playing`.

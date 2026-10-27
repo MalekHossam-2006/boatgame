@@ -39,8 +39,19 @@ public class ShipController : MonoBehaviour
     public float SteerInput { get; set; }
     public float Speed { get; private set; }
 
+    public bool IsSunk { get; private set; }
+
     float steer;
+    float sinkTime;
     Vector3 visualBaseOffset;
+
+    /// <summary>Stops the ship and slowly sinks its model (used when the player is caught).</summary>
+    public void Sink()
+    {
+        IsSunk = true;
+        Throttle = 0f;
+        SteerInput = 0f;
+    }
 
     void Start()
     {
@@ -50,6 +61,12 @@ public class ShipController : MonoBehaviour
     void Update()
     {
         float dt = Time.deltaTime;
+        if (IsSunk)
+        {
+            Throttle = 0f;
+            SteerInput = 0f;
+            sinkTime += dt;
+        }
         steer = Mathf.MoveTowards(steer, Mathf.Clamp(SteerInput, -1f, 1f), dt * 4f);
         Move(dt);
         Float(dt);
@@ -105,6 +122,12 @@ public class ShipController : MonoBehaviour
         float pitch = Mathf.Atan2(stern - bow, hullLength) * Mathf.Rad2Deg;
         float roll = Mathf.Atan2(port - starboard, hullWidth) * Mathf.Rad2Deg
                      - steer * bankAngle * Mathf.Clamp01(Mathf.Abs(Speed) / 4f);
+
+        // sinking: go down and tip over to one side over about 3 seconds
+        float sink01 = Mathf.Clamp01(sinkTime / 3f);
+        height -= sink01 * 4f;
+        pitch += sink01 * 15f;
+        roll += sink01 * 35f;
 
         float k = 1f - Mathf.Exp(-floatSmoothing * dt);
         visual.localPosition = Vector3.Lerp(visual.localPosition, visualBaseOffset + Vector3.up * height, k);

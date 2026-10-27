@@ -283,3 +283,8 @@ pause, getting caught, end panel, back to the menu.
 | ![Main menu](images/main-menu.png) | ![How to play](images/how-to-play.png) |
 | ![HUD](images/hud.png) | ![Pause](images/pause.png) |
 | ![End screen](images/end-screen.png) | |
+
+## Step 10 - README for the new UI
+
+`README.md`: start from `MainMenu.unity`, Esc to pause, the main menu and UI folders,
+new screenshots, best score, and font credits (Bangers and Oswald, SIL Open Font License).

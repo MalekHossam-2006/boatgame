@@ -208,3 +208,12 @@ player is 15 units away, and follows the player. The full game (start screen, ch
 being caught and sinking, restart) was played by hand in the editor.
 
 ![Pirate ship chasing the player](images/pirate-chase.png)
+
+---
+
+## Step 8 - README update and editor bridge port
+
+- `README.md`: new goal section (win, lose, safe zone, how the pirates behave),
+  Space to start, new folders, chase screenshot, updated "Planned" list.
+- Editor tooling: the bridge moved from port 17890 to **17891**. After a Unity restart, a
+  leftover process still held 17890 and blocked the bridge. This does not affect the game.

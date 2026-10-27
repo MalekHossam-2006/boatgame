@@ -17,7 +17,7 @@ from pathlib import Path
 
 PROJECT = Path(__file__).resolve().parent.parent
 TOKEN_FILE = PROJECT / "UserSettings" / "ClaudeBridge.token"
-BASE = "http://127.0.0.1:17890/"
+BASE = "http://127.0.0.1:17891/"
 
 
 def call(cmd, args=None, body="", timeout=130):

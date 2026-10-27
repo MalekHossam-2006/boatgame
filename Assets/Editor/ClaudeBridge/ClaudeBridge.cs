@@ -2,7 +2,7 @@
 // drive the Unity Editor. Listens on 127.0.0.1 only and requires a token that is
 // stored in UserSettings/ClaudeBridge.token (not committed to git).
 //
-// Requests:  POST http://127.0.0.1:17890/<command>?key=value   header X-Token: <token>
+// Requests:  POST http://127.0.0.1:17891/<command>?key=value   header X-Token: <token>
 // Body:      optional raw text (passed to "invoke" as the string argument)
 // Response:  plain text / JSON-ish text. HTTP 200 on success, 500 on error.
 //
@@ -39,7 +39,7 @@ using UnityEngine.SceneManagement;
 [InitializeOnLoad]
 public static class ClaudeBridge
 {
-    const int Port = 17890;
+    const int Port = 17891;
     const string TokenPath = "UserSettings/ClaudeBridge.token";
 
     class Job

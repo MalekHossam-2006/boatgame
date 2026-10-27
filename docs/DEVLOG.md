@@ -217,3 +217,69 @@ being caught and sinking, restart) was played by hand in the editor.
   Space to start, new folders, chase screenshot, updated "Planned" list.
 - Editor tooling: the bridge moved from port 17890 to **17891**. After a Unity restart, a
   leftover process still held 17890 and blocked the bridge. This does not affect the game.
+
+---
+
+## Step 9 - New UI (uGUI + TextMeshPro) and a separate main menu
+
+**Goal:** the first HUD used Unity's IMGUI (plain text boxes drawn from code). It worked
+but looked rough. We replaced it with a simpler, cleaner UI and added a main menu
+outside the game scene.
+
+### Style
+- One consistent look for every screen: **dark navy rounded cards**, **gold** for
+  money and the main buttons, white text. Red only for danger.
+- Fonts from the TextMesh Pro examples that ship with Unity:
+  **Bangers** (titles and numbers) and **Oswald Bold** (everything else).
+- Rounded corners: `UiKit` draws a white rounded square into `Assets/UI/Rounded.png`
+  and imports it as a 9-sliced sprite, so one small image fits every card and button.
+  `Assets/UI/Circle.png` is used for the coin.
+
+### Editor helper - `Assets/Editor/SceneBuilders/UiKit.cs`
+Small functions the scene builders call: `Canvas`, `Rect`, `Panel`, `Text`, `Button`,
+`EventSystem`. They keep every screen in the same style without repeating code.
+
+### In-game HUD - `GameHud.cs` (rewritten) + `SeaMapBuilder.CreateHud()`
+| Element | What it shows |
+|---|---|
+| Money pill (top left) | Gold coin + money. The number **counts up** instead of jumping, and the pill **pops** on every pickup (feedback). |
+| Barrels pill (top right) | Barrels collected / total |
+| Hint (bottom) | "Collect barrels / Avoid the pirate ship / Red buoys = safe zone / Esc = pause". Fades out after 6 seconds (onboarding without blocking play). |
+| Chase banner (top) | Red "PIRATES ARE CHASING YOU!", pulsing while the enemy chases |
+| "+10" popups | Gold number with a dark outline that rises from the barrel and fades |
+| Pause panel (Esc) | RESUME / RESTART / MAIN MENU. The game is frozen with `Time.timeScale = 0`. |
+| End panel | "YOU WIN!" (gold) or "SHIP SUNK!" (red), money and barrels, best score or "New best score!", PLAY AGAIN / MAIN MENU |
+
+The old speed readout and the in-game start screen were removed. The main menu
+now explains the rules, so the level starts right away.
+
+### Game flow changes - `GameState.cs`
+- Phases are now `Playing, Paused, Won, Lost`. Esc toggles pause.
+- `Restart()` reloads the level. `ToMenu()` loads the main menu.
+- When a run ends, the money is compared with the best score saved in
+  `PlayerPrefs` ("BestMoney") and saved if it is higher.
+
+### Main menu - `MainMenu.unity`
+- Built by `Assets/Editor/SceneBuilders/MainMenuBuilder.cs`
+  (**Tools > Boat Game > Build Main Menu**), adapted from our pirate prototype's menu.
+- Background: the same sea, islands and buoys as the game, the player ship, the pirate
+  ship and some barrels floating, with a slowly orbiting camera (`MenuOrbitCamera.cs`).
+- Left card: title, tagline, **PLAY**, **HOW TO PLAY**, **QUIT**, and the best score.
+- How to Play card: the goal, barrel values, the pirate and the safe zone, controls, BACK.
+- `MainMenu.cs` wires the buttons. Quit also stops Play mode in the editor.
+- Build order is now `MainMenu` (0) then `SeaMap` (1). `SeaMapBuilder.SetBuildScenes()`
+  keeps this order whichever builder runs.
+
+### Other files
+- TextMesh Pro font assets (Bangers SDF, Oswald Bold SDF): Unity upgraded their format
+  when they were first used. These are not our edits.
+
+**Check:** compiled with no errors. Screenshots of every screen were rendered from the
+editor (below). The whole flow was played by hand: menu, how to play, play, pickups,
+pause, getting caught, end panel, back to the menu.
+
+| | |
+|---|---|
+| ![Main menu](images/main-menu.png) | ![How to play](images/how-to-play.png) |
+| ![HUD](images/hud.png) | ![Pause](images/pause.png) |
+| ![End screen](images/end-screen.png) | |

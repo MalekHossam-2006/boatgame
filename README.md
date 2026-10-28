@@ -13,7 +13,25 @@ but a pirate ship patrols out there. If it catches you, your ship sinks.
 > Midterm prototype. Not final art, no sound yet. See [docs/DEVLOG.md](docs/DEVLOG.md)
 > for every development step and how it was done.
 
+## Midterm documents
+
+| Document | Content |
+|---|---|
+| [docs/GDD.pdf](docs/GDD.pdf) ([Markdown version](docs/GDD.md)) | Game Design Document: concept, audience, design principles, MDA, core loop, game flow, prototype, playtesting, plan, references |
+| [docs/PLAYTEST.md](docs/PLAYTEST.md) | Playtest kit: procedure, observation sheet, questions |
+| [docs/TEAM.md](docs/TEAM.md) | Team contribution summary |
+| [docs/DEVLOG.md](docs/DEVLOG.md) | Every development step and how it was done |
+
+To regenerate the PDF after editing `docs/GDD.md`: `pip install markdown`, then
+`python docs/tools/build_gdd.py` (uses Chrome or Edge).
+
 ## How to run
+
+**Without Unity:** download the Windows build (`BoatGame-Windows.zip`), unzip it and run `BoatGame.exe`.
+To make the build yourself, open the project in Unity and use **Tools > Boat Game > Build Windows**.
+The output goes to `Builds/BoatGame/`.
+
+**In Unity:**
 
 1. Install **Unity 6000.4.7f1** (Unity 6.4) from Unity Hub.
 2. Clone this repository and open the folder in Unity Hub (**Add > Add project from disk**).

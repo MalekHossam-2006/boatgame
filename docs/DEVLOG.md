@@ -288,3 +288,28 @@ pause, getting caught, end panel, back to the menu.
 
 `README.md`: start from `MainMenu.unity`, Esc to pause, the main menu and UI folders,
 new screenshots, best score, and font credits (Bangers and Oswald, SIL Open Font License).
+
+---
+
+## Step 11 - Midterm documents and Windows build
+
+**Goal:** cover the written parts of the midterm guidelines that do not need the team's
+own input, and make the prototype easy for the instructor to open.
+
+| File | What it is |
+|---|---|
+| `docs/GDD.md` / `docs/GDD.pdf` | Game Design Document draft, following the guidelines' suggested structure: concept and pitch, audience/platform/goals, scope, **5 design principles** (each with decision, effect, and how to test), **MDA table with 3 connected examples** and target aesthetics, core loop, game flow, controls, prototype overview with screenshots, playtesting section, completed/remaining work, end-of-term plan, references. Team-only items are marked **[TO FILL]**. |
+| `docs/images/core-loop.svg` | Core loop diagram: sail, spot a barrel, decide the route, overcome the threat, collect + feedback, reward, repeat until win/lose. |
+| `docs/images/game-flow.svg` | Game flow diagram: main menu, how to play, sea map, pause, win/lose, end panel, play again / main menu. |
+| `docs/PLAYTEST.md` | Playtest kit: setup, what to watch for, the two required questions plus extras, observation sheet, summary checklist. |
+| `docs/TEAM.md` | Team contribution template plus a list of work items to assign. |
+| `docs/tools/build_gdd.py` | Converts `GDD.md` to a print-styled HTML page and prints it to `GDD.pdf` with headless Chrome/Edge. |
+| `Assets/Editor/BuildGame.cs` | **Tools > Boat Game > Build Windows**: builds the scenes from the build settings into `Builds/BoatGame/BoatGame.exe` (git-ignored). |
+
+**Honesty notes:**
+- No playtest results were invented. Section 7 of the GDD is left for the team's real sessions.
+- The inspiration (*Privateers: Pirate Wars*) is credited as idea only.
+- AI assistance is disclosed in the GDD references and in `TEAM.md`.
+
+**Check:** the PDF was rendered page by page and reviewed (9 pages A4). The diagrams were
+rendered and checked. The Windows build was made in Unity batch mode.

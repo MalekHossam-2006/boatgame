@@ -96,8 +96,14 @@ public static class SeaMapBuilder
         // short hint at the start of the level
         var hint = UiKit.Rect("Hint", canvas, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 48), new Vector2(1080, 70));
         UiKit.Panel(hint, UiKit.CardLight);
-        UiKit.Text(UiKit.Stretch("Text", hint), "Collect barrels   |   Avoid the pirate ship   |   Red buoys = safe zone   |   Esc = pause", 28, Color.white);
+        hud.hintText = UiKit.Text(UiKit.Stretch("Text", hint), "Collect barrels   |   Avoid the pirate ship   |   Red buoys = safe zone   |   Esc = pause", 28, Color.white);
         hud.hint = hint.gameObject.AddComponent<CanvasGroup>();
+        hud.hint.blocksRaycasts = false;
+
+        // touch controls (mobile only, they hide themselves on PC)
+        CreateJoystick(canvas);
+        hud.pauseButton = UiKit.Button(canvas, "PauseButton", "II", topRight, new Vector2(-84, -176), new Vector2(96, 96), false);
+        hud.pauseButton.GetComponentInChildren<TextMeshProUGUI>().font = UiKit.TitleFont;
 
         // chase warning
         var banner = UiKit.Rect("ChaseBanner", canvas, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -36), new Vector2(640, 80));
@@ -130,6 +136,31 @@ public static class SeaMapBuilder
                                  "Best 0", 28, UiKit.Soft);
         hud.playAgainButton = UiKit.Button(end, "PlayAgain", "PLAY AGAIN", new Vector2(0.5f, 0.5f), new Vector2(0, -100), new Vector2(380, 84), true);
         hud.endMenuButton = UiKit.Button(end, "Menu", "MAIN MENU", new Vector2(0.5f, 0.5f), new Vector2(0, -192), new Vector2(380, 72), false);
+    }
+
+    /// <summary>
+    /// Invisible touch zone over the lower-left part of the screen. The joystick base appears
+    /// where the thumb lands (rest position bottom-left) and the knob follows the drag.
+    /// </summary>
+    static void CreateJoystick(Transform canvas)
+    {
+        var zone = UiKit.Rect("JoystickZone", canvas, Vector2.zero, Vector2.zero, Vector2.zero, Vector2.zero);
+        zone.anchorMin = Vector2.zero;
+        zone.anchorMax = new Vector2(0.45f, 0.75f);
+        var hit = zone.gameObject.AddComponent<UnityEngine.UI.Image>();
+        hit.color = new Color(0, 0, 0, 0);     // invisible, but catches touches
+
+        var stickBase = UiKit.Rect("Base", zone, Vector2.zero, new Vector2(0.5f, 0.5f), new Vector2(230, 230), new Vector2(240, 240));
+        UiKit.Circle(stickBase, new Color(1f, 1f, 1f, 0.18f));
+        var ring = UiKit.Rect("Ring", stickBase, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(200, 200));
+        UiKit.Circle(ring, new Color(0.04f, 0.12f, 0.18f, 0.35f));
+        var knob = UiKit.Rect("Knob", stickBase, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(110, 110));
+        UiKit.Circle(knob, new Color(UiKit.Gold.r, UiKit.Gold.g, UiKit.Gold.b, 0.9f));
+
+        var joy = zone.gameObject.AddComponent<TouchJoystick>();
+        joy.knobBase = stickBase;
+        joy.knob = knob;
+        joy.radius = 100f;
     }
 
     /// <summary>Full-screen dim layer with a centered card and a title; returns the card.</summary>

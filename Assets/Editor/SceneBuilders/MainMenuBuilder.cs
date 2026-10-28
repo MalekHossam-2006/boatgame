@@ -74,7 +74,10 @@ public static class MainMenuBuilder
             "<color=#FFC94A>A / D</color>   steer\n" +
             "<color=#FFC94A>Mouse wheel</color>   zoom\n" +
             "<color=#FFC94A>Esc</color>   pause\n" +
-            "<color=#FFC94A>R</color>   restart");
+            "<color=#FFC94A>R</color>   restart\n\n" +
+            "ON A PHONE\n" +
+            "<color=#FFC94A>Joystick</color> (left thumb)   push where\nyou want to sail\n" +
+            "<color=#FFC94A>II</color> button   pause");
         menu.backButton = UiKit.Button(how, "Back", "BACK", new Vector2(0.5f, 0), new Vector2(0, 70), new Vector2(320, 80), true);
 
         var credit = UiKit.Text(UiKit.Rect("Credit", canvas, new Vector2(1, 0), new Vector2(1, 0), new Vector2(-36, 24), new Vector2(700, 36)),

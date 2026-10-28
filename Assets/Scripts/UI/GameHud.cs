@@ -17,6 +17,8 @@ public class GameHud : MonoBehaviour
 
     [Header("Feedback")]
     public CanvasGroup hint;
+    public TMP_Text hintText;
+    [TextArea] public string mobileHint = "Joystick = sail   |   Collect barrels   |   Avoid the pirate ship   |   Red buoys = safe zone";
     public float hintSeconds = 6f;
     public CanvasGroup chaseBanner;
     public TMP_Text popupTemplate;
@@ -24,6 +26,8 @@ public class GameHud : MonoBehaviour
 
     [Header("Pause panel")]
     public GameObject pausePanel;
+    [Tooltip("On-screen pause button, only shown on touch devices (PC uses Esc).")]
+    public Button pauseButton;
     public Button resumeButton;
     public Button pauseRestartButton;
     public Button pauseMenuButton;
@@ -55,6 +59,9 @@ public class GameHud : MonoBehaviour
         cam = Camera.main;
 
         resumeButton.onClick.AddListener(() => GameState.Instance.Resume());
+        pauseButton.onClick.AddListener(() => GameState.Instance.Pause());
+        pauseButton.gameObject.SetActive(TouchJoystick.UseTouchControls);
+        if (TouchJoystick.UseTouchControls) hintText.text = mobileHint;
         pauseRestartButton.onClick.AddListener(GameState.Restart);
         pauseMenuButton.onClick.AddListener(GameState.ToMenu);
         playAgainButton.onClick.AddListener(GameState.Restart);
@@ -105,6 +112,7 @@ public class GameHud : MonoBehaviour
         UpdatePopups(dt);
 
         pausePanel.SetActive(phase == GameState.Phase.Paused);
+        if (TouchJoystick.UseTouchControls) pauseButton.gameObject.SetActive(phase == GameState.Phase.Playing);
         bool ended = phase == GameState.Phase.Won || phase == GameState.Phase.Lost;
         if (ended && !endPanel.activeSelf) ShowEnd(phase == GameState.Phase.Won);
     }

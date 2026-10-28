@@ -288,3 +288,31 @@ pause, getting caught, end panel, back to the menu.
 
 `README.md`: start from `MainMenu.unity`, Esc to pause, the main menu and UI folders,
 new screenshots, best score, and font credits (Bangers and Oswald, SIL Open Font License).
+
+---
+
+## Step 12 - Android version (touch controls + APK)
+
+**Goal:** play the same game on an Android phone without changing the PC version.
+
+**Touch controls (shown only on phones):**
+| File | What it does |
+|---|---|
+| `Assets/Scripts/UI/TouchJoystick.cs` | Invisible touch zone over the lower-left of the screen. The joystick base jumps to where the thumb lands and the gold knob follows the drag (radius 100, small dead zone). Exposes `Value` (-1..1). It hides itself when `Application.isMobilePlatform` is false, so PC players never see it. |
+| `Assets/Scripts/Ship/PlayerShipInput.cs` | If the joystick is pushed, the ship **turns toward the joystick direction** (the camera never rotates, so "up" on the stick is "up" on the screen) and the push distance sets the speed. The ship slows down while turning hard so it can come around. Otherwise the keyboard controls work exactly as before. |
+| `Assets/Scripts/UI/GameHud.cs` | New **II** pause button (top right, phones only, hidden while paused or after the game ends). On phones the start hint says "Joystick = sail" instead of mentioning Esc. |
+| `Assets/Scripts/Game/MobileSettings.cs` | On phones only: run at 60 fps (Unity's mobile default is 30) and keep the screen awake. |
+| `SeaMapBuilder.CreateJoystick()` | Builds the joystick (translucent base, dark ring, gold knob) and the pause button into the HUD. |
+| `MainMenuBuilder` | How to Play now also lists the phone controls. |
+
+**APK build:** `Assets/Editor/BuildAndroid.cs`, menu **Tools > Boat Game > Build Android APK**.
+- Package id `com.boatgame.midterm`, version 0.1, landscape only.
+- **IL2CPP + ARM64**, which current phones require (they can't run 32-bit apps).
+- Builds a plain `.apk` (not an app bundle) so it can be installed directly.
+  Output: `Builds/Android/BoatGame.apk` (git-ignored).
+- It also works from the command line:
+  `Unity -batchmode -quit -projectPath . -buildTarget Android -executeMethod BuildAndroid.Build`
+
+**Check:** compiled with no errors. Both scenes rebuilt. The How to Play screenshot shows
+the new phone section. The APK was built in Unity batch mode (Build Finished: Success, 35 MB). `aapt` confirms package `com.boatgame.midterm`, `arm64-v8a` native code, sensor-landscape orientation, min SDK 25 (Android 7.1), target SDK 36. Touch controls must be tested
+on a real phone (or in Unity's Device Simulator), because the joystick only appears on mobile.

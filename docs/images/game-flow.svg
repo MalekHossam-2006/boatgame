@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 420" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#3b5566"/>
+    </marker>
+  </defs>
+  <rect width="1000" height="420" fill="#ffffff"/>
+  <text x="500" y="36" text-anchor="middle" font-size="24" font-weight="700" fill="#0b2233">Game flow</text>
+
+  <g font-size="16" text-anchor="middle">
+    <!-- main menu -->
+    <rect x="30" y="150" width="170" height="80" rx="14" fill="#0b2233"/>
+    <text x="115" y="185" font-weight="700" fill="#ffc94a">Main Menu</text>
+    <text x="115" y="207" fill="#dbe9f1" font-size="14">best score shown</text>
+
+    <rect x="30" y="300" width="170" height="64" rx="14" fill="#e6f1f7" stroke="#2a7aa6" stroke-width="2"/>
+    <text x="115" y="328" font-weight="700" fill="#0b2233">How to Play</text>
+    <text x="115" y="348" fill="#3b5566" font-size="14">goal, rules, controls</text>
+
+    <!-- level -->
+    <rect x="290" y="140" width="230" height="100" rx="14" fill="#e6f1f7" stroke="#2a7aa6" stroke-width="2"/>
+    <text x="405" y="172" font-weight="700" fill="#0b2233">Sea Map (Playing)</text>
+    <text x="405" y="194" fill="#3b5566" font-size="14">hint fades after 6 s</text>
+    <text x="405" y="214" fill="#3b5566" font-size="14">core loop runs here</text>
+
+    <rect x="320" y="300" width="170" height="64" rx="14" fill="#f1f1f1" stroke="#7a8a94" stroke-width="2"/>
+    <text x="405" y="328" font-weight="700" fill="#0b2233">Paused</text>
+    <text x="405" y="348" fill="#3b5566" font-size="14">time stopped</text>
+
+    <!-- results -->
+    <rect x="620" y="70" width="190" height="74" rx="14" fill="#fff4d6" stroke="#d9a21b" stroke-width="2"/>
+    <text x="715" y="102" font-weight="700" fill="#0b2233">YOU WIN!</text>
+    <text x="715" y="124" fill="#3b5566" font-size="14">all barrels collected</text>
+
+    <rect x="620" y="236" width="190" height="74" rx="14" fill="#fde5e3" stroke="#c9372c" stroke-width="2"/>
+    <text x="715" y="268" font-weight="700" fill="#0b2233">SHIP SUNK!</text>
+    <text x="715" y="290" fill="#3b5566" font-size="14">caught by the pirates</text>
+
+    <rect x="860" y="150" width="120" height="80" rx="14" fill="#e3f5e6" stroke="#2f8f46" stroke-width="2"/>
+    <text x="920" y="182" font-weight="700" fill="#0b2233">End panel</text>
+    <text x="920" y="204" fill="#3b5566" font-size="13">money, best</text>
+  </g>
+
+  <g fill="none" stroke="#3b5566" stroke-width="2.5" marker-end="url(#a)">
+    <path d="M200,190 L286,190"/>
+    <path d="M100,232 L100,296"/>
+    <path d="M130,298 L130,234"/>
+    <path d="M390,242 L390,296"/>
+    <path d="M420,298 L420,244"/>
+    <path d="M520,170 C570,140 590,110 616,107"/>
+    <path d="M520,210 C570,240 590,270 616,273"/>
+    <path d="M812,107 C840,120 850,140 880,148"/>
+    <path d="M812,273 C840,260 850,240 880,232"/>
+    <path d="M920,148 L920,52 L470,52 L470,136" stroke-dasharray="6 5"/>
+    <path d="M920,232 L920,396 L14,396 L14,190 L26,190" stroke-dasharray="6 5"/>
+  </g>
+
+  <g font-size="13" fill="#3b5566" text-anchor="middle">
+    <text x="243" y="180">PLAY</text>
+    <text x="70" y="268">open</text>
+    <text x="162" y="268">BACK</text>
+    <text x="360" y="272">Esc</text>
+    <text x="462" y="272">Resume</text>
+    <text x="700" y="46">PLAY AGAIN / R (restart)</text>
+    <text x="560" y="414">MAIN MENU</text>
+  </g>
+</svg>

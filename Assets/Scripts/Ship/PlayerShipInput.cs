@@ -1,10 +1,10 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Keyboard controls for the player ship.
-/// W / Up = forward, S / Down = slow down and reverse, A/D or Left/Right = steer, R = restart.
+/// W / Up = forward, S / Down = slow down and reverse, A/D or Left/Right = steer.
+/// The ship only answers while the game is being played (see <see cref="GameState"/>).
 /// </summary>
 [RequireComponent(typeof(ShipController))]
 public class PlayerShipInput : MonoBehaviour
@@ -19,7 +19,12 @@ public class PlayerShipInput : MonoBehaviour
     void Update()
     {
         var kb = Keyboard.current;
-        if (kb == null) return;
+        if (kb == null || !GameState.IsPlaying)
+        {
+            ship.Throttle = 0f;
+            ship.SteerInput = 0f;
+            return;
+        }
 
         float throttle = 0f;
         if (kb.wKey.isPressed || kb.upArrowKey.isPressed) throttle += 1f;
@@ -30,8 +35,5 @@ public class PlayerShipInput : MonoBehaviour
         if (kb.aKey.isPressed || kb.leftArrowKey.isPressed) steer -= 1f;
         if (kb.dKey.isPressed || kb.rightArrowKey.isPressed) steer += 1f;
         ship.SteerInput = steer;
-
-        if (kb.rKey.wasPressedThisFrame)
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 }

@@ -20,7 +20,7 @@ public class MoneyBarrel : MonoBehaviour
     void Update()
     {
         var wallet = PlayerWallet.Instance;
-        if (wallet == null) return;
+        if (wallet == null || !GameState.IsPlaying) return;
 
         var d = wallet.transform.position - transform.position;
         d.y = 0f;

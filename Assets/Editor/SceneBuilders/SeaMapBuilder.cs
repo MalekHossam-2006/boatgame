@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -15,7 +16,7 @@ using UnityEngine.Rendering.Universal;
 public static class SeaMapBuilder
 {
     public const string ScenePath = "Assets/Scenes/SeaMap.unity";
-    const string Kit = "Assets/ThirdParty/KenneyPirateKit/";
+    public const string Kit = "Assets/ThirdParty/KenneyPirateKit/";
     const string MatDir = "Assets/Materials";
     const string PostProfilePath = "Assets/Settings/SeaMapPost.asset";
     const float MapRadius = 95f;
@@ -32,7 +33,9 @@ public static class SeaMapBuilder
         var ship = CreatePlayerShip();
         ocean.follow = ship.transform;
         var world = CreateWorld();
+        CreateSafeZone();
         PlaceBarrels(world);
+        CreateEnemy(ship.transform);
 
         var cam = CreateCamera();
         var follow = cam.gameObject.AddComponent<TopDownCamera>();
@@ -41,17 +44,105 @@ public static class SeaMapBuilder
         cam.transform.position = ship.transform.position - cam.transform.forward * follow.distance;
 
         CreatePostVolume();
-        var hud = new GameObject("HUD").AddComponent<GameHud>();
-        hud.wallet = ship.GetComponent<PlayerWallet>();
-        hud.ship = ship.GetComponent<ShipController>();
+        new GameObject("GameState").AddComponent<GameState>();
+        CreateHud();
+        UiKit.EventSystem();
 
         EditorSceneManager.SaveScene(scene, ScenePath);
-        // SeaMap becomes the first scene in the build
-        var scenes = EditorBuildSettings.scenes.Where(s => s.path != ScenePath).ToList();
-        scenes.Insert(0, new EditorBuildSettingsScene(ScenePath, true));
-        EditorBuildSettings.scenes = scenes.ToArray();
+        SetBuildScenes();
         AssetDatabase.SaveAssets();
         return "built " + ScenePath;
+    }
+
+    /// <summary>Build order: MainMenu first, then the game. The old Roll-a-Ball scene is left out.</summary>
+    public static void SetBuildScenes()
+    {
+        var order = new[] { MainMenuBuilder.ScenePath, ScenePath }.Where(System.IO.File.Exists).ToList();
+        var scenes = order.Select(p => new EditorBuildSettingsScene(p, true)).ToList();
+        scenes.AddRange(EditorBuildSettings.scenes.Where(s => !order.Contains(s.path) && s.path != "Assets/Scenes/SampleScene.unity"));
+        EditorBuildSettings.scenes = scenes.ToArray();
+    }
+
+    // ------------------------------------------------------------------ HUD
+    /// <summary>
+    /// In-game UI: money pill (top left), barrel counter (top right), start hint (bottom),
+    /// chase banner (top), popup layer, pause panel and end panel. All wired to <see cref="GameHud"/>.
+    /// </summary>
+    static void CreateHud()
+    {
+        var canvas = UiKit.Canvas("HUD");
+        var hud = canvas.gameObject.AddComponent<GameHud>();
+        var topLeft = new Vector2(0, 1);
+        var topRight = new Vector2(1, 1);
+
+        // money: gold coin + big number
+        var pill = UiKit.Rect("MoneyPill", canvas, topLeft, new Vector2(0, 1), new Vector2(36, -32), new Vector2(270, 88));
+        UiKit.Panel(pill, UiKit.Card);
+        var coin = UiKit.Rect("Coin", pill, new Vector2(0, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(46, 0), new Vector2(54, 54));
+        UiKit.Circle(coin, UiKit.Gold);
+        UiKit.Text(UiKit.Stretch("Sign", coin), "$", 38, UiKit.Ink, true);
+        var money = UiKit.Rect("Money", pill, new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(88, 2), new Vector2(170, 80));
+        hud.moneyText = UiKit.Text(money, "0", 60, Color.white, true, TextAlignmentOptions.Left);
+        hud.moneyPill = pill;
+
+        // barrels collected
+        var barrels = UiKit.Rect("BarrelsPill", canvas, topRight, new Vector2(1, 1), new Vector2(-36, -32), new Vector2(330, 88));
+        UiKit.Panel(barrels, UiKit.Card);
+        UiKit.Text(UiKit.Rect("Label", barrels, new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(26, 0), new Vector2(110, 60)),
+                   "BARRELS", 24, UiKit.Soft, false, TextAlignmentOptions.Left);
+        hud.barrelsText = UiKit.Text(UiKit.Rect("Count", barrels, new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-24, 2), new Vector2(120, 80)),
+                                     "0 / 28", 44, Color.white, true, TextAlignmentOptions.Right);
+
+        // short hint at the start of the level
+        var hint = UiKit.Rect("Hint", canvas, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 48), new Vector2(1080, 70));
+        UiKit.Panel(hint, UiKit.CardLight);
+        UiKit.Text(UiKit.Stretch("Text", hint), "Collect barrels   |   Avoid the pirate ship   |   Red buoys = safe zone   |   Esc = pause", 28, Color.white);
+        hud.hint = hint.gameObject.AddComponent<CanvasGroup>();
+
+        // chase warning
+        var banner = UiKit.Rect("ChaseBanner", canvas, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -36), new Vector2(640, 80));
+        UiKit.Panel(banner, UiKit.Danger);
+        UiKit.Text(UiKit.Stretch("Text", banner), "PIRATES ARE CHASING YOU!", 46, Color.white, true);
+        hud.chaseBanner = banner.gameObject.AddComponent<CanvasGroup>();
+        hud.chaseBanner.blocksRaycasts = false;
+
+        // "+10" popups are copies of this template
+        var popups = UiKit.Stretch("Popups", canvas);
+        var popup = UiKit.Rect("PopupTemplate", popups, Vector2.zero, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(200, 80));
+        hud.popupTemplate = UiKit.Text(popup, "+10", 58, UiKit.Gold, true);
+        hud.popupTemplate.outlineWidth = 0.2f;
+        hud.popupTemplate.outlineColor = new Color32(40, 25, 5, 255);
+
+        // pause panel (Esc)
+        var pause = Overlay(canvas, "PausePanel", 560, 470, "PAUSED", UiKit.Gold, out _);
+        hud.pausePanel = pause.parent.gameObject;   // the dim layer, so it hides too
+        hud.resumeButton = UiKit.Button(pause, "Resume", "RESUME", new Vector2(0.5f, 0.5f), new Vector2(0, 20), new Vector2(360, 84), true);
+        hud.pauseRestartButton = UiKit.Button(pause, "Restart", "RESTART", new Vector2(0.5f, 0.5f), new Vector2(0, -80), new Vector2(360, 72), false);
+        hud.pauseMenuButton = UiKit.Button(pause, "Menu", "MAIN MENU", new Vector2(0.5f, 0.5f), new Vector2(0, -168), new Vector2(360, 72), false);
+
+        // end panel (win / lose)
+        var end = Overlay(canvas, "EndPanel", 720, 520, "YOU WIN!", UiKit.Gold, out var title);
+        hud.endPanel = end.parent.gameObject;
+        hud.endTitle = title;
+        hud.endMoney = UiKit.Text(UiKit.Rect("Money", end, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 50), new Vector2(640, 60)),
+                                  "Money 0", 36, Color.white);
+        hud.endBest = UiKit.Text(UiKit.Rect("Best", end, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -5), new Vector2(640, 44)),
+                                 "Best 0", 28, UiKit.Soft);
+        hud.playAgainButton = UiKit.Button(end, "PlayAgain", "PLAY AGAIN", new Vector2(0.5f, 0.5f), new Vector2(0, -100), new Vector2(380, 84), true);
+        hud.endMenuButton = UiKit.Button(end, "Menu", "MAIN MENU", new Vector2(0.5f, 0.5f), new Vector2(0, -192), new Vector2(380, 72), false);
+    }
+
+    /// <summary>Full-screen dim layer with a centered card and a title; returns the card.</summary>
+    static RectTransform Overlay(Transform canvas, string name, float w, float h, string titleText, Color titleColor, out TMPro.TextMeshProUGUI title)
+    {
+        var dim = UiKit.Stretch(name, canvas);
+        var dimImg = UiKit.Panel(dim, new Color(0.01f, 0.04f, 0.07f, 0.55f), round: false);
+        dimImg.raycastTarget = true;   // block clicks on the game behind
+        var card = UiKit.Rect("Card", dim, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(w, h));
+        UiKit.Panel(card, UiKit.Card);
+        title = UiKit.Text(UiKit.Rect("Title", card, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -36), new Vector2(w - 60, 110)),
+                           titleText, 96, titleColor, true);
+        return card;
     }
 
     // ------------------------------------------------------------------ ship
@@ -67,6 +158,62 @@ public static class SeaMapBuilder
         root.AddComponent<PlayerShipInput>();
         root.AddComponent<PlayerWallet>();
         return root;
+    }
+
+    // ------------------------------------------------------------------ enemy and safe zone
+    const float SafeZoneRadius = 28f;
+    const float PatrolRadius = 80f;
+
+    /// <summary>A pirate ship that patrols the outer ring, where the big barrels are.</summary>
+    static void CreateEnemy(Transform player)
+    {
+        var root = new GameObject("PirateShip");
+        var visual = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(Kit + "ship-pirate-medium.fbx"), root.transform);
+        visual.name = "Visual";
+        root.transform.position = new Vector3(0f, 0f, PatrolRadius);
+        root.transform.rotation = Quaternion.LookRotation(Vector3.left);   // tangent to the patrol circle
+
+        var controller = root.AddComponent<ShipController>();
+        controller.visual = visual.transform;
+        controller.mapRadius = MapRadius;
+        controller.maxSpeed = 8f;          // slower than the player (10) so escaping is possible
+        controller.turnRate = 55f;
+        controller.hullLength = 9f;
+
+        var ai = root.AddComponent<EnemyShipAI>();
+        ai.player = player;
+        ai.patrolRadius = PatrolRadius;
+        ai.safeZoneRadius = SafeZoneRadius;
+    }
+
+    /// <summary>Red buoys in a circle around the start: inside it the pirates will not follow you.</summary>
+    public static void CreateSafeZone()
+    {
+        var parent = new GameObject("SafeZone").transform;
+        var red = LitMaterial("Buoy", new Color(0.85f, 0.18f, 0.15f), 0.4f);
+        var white = LitMaterial("BuoyStripe", new Color(0.95f, 0.95f, 0.92f), 0.4f);
+        const int count = 20;
+        for (int i = 0; i < count; i++)
+        {
+            float a = i * Mathf.PI * 2f / count;
+            var buoy = new GameObject("Buoy").transform;
+            buoy.SetParent(parent);
+            buoy.position = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * SafeZoneRadius;
+            Part(buoy, PrimitiveType.Cylinder, new Vector3(0f, 0.3f, 0f), new Vector3(1.1f, 0.6f, 1.1f), red);
+            Part(buoy, PrimitiveType.Cylinder, new Vector3(0f, 1.0f, 0f), new Vector3(0.5f, 0.25f, 0.5f), white);
+            Part(buoy, PrimitiveType.Sphere, new Vector3(0f, 1.45f, 0f), Vector3.one * 0.45f, red);
+            buoy.gameObject.AddComponent<Bobber>().offset = -0.2f;
+        }
+    }
+
+    static void Part(Transform parent, PrimitiveType type, Vector3 pos, Vector3 scale, Material mat)
+    {
+        var go = GameObject.CreatePrimitive(type);
+        Object.DestroyImmediate(go.GetComponent<Collider>());   // buoys are only a marker, the ship sails through
+        go.transform.SetParent(parent, false);
+        go.transform.localPosition = pos;
+        go.transform.localScale = scale;
+        go.GetComponent<MeshRenderer>().sharedMaterial = mat;
     }
 
     // ------------------------------------------------------------------ money barrels
@@ -111,7 +258,7 @@ public static class SeaMapBuilder
     }
 
     // ------------------------------------------------------------------ environment
-    static void SetupLighting()
+    public static void SetupLighting()
     {
         var sun = new GameObject("Sun").AddComponent<Light>();
         sun.type = LightType.Directional;
@@ -133,7 +280,7 @@ public static class SeaMapBuilder
         RenderSettings.fogEndDistance = 130f;
     }
 
-    static Ocean CreateOcean()
+    public static Ocean CreateOcean()
     {
         var oceanGo = new GameObject("Ocean", typeof(MeshFilter), typeof(MeshRenderer));
         var ocean = oceanGo.AddComponent<Ocean>();
@@ -144,7 +291,7 @@ public static class SeaMapBuilder
     }
 
     /// <summary>Islands and rocks inside the map, plus a ring of rocks that marks the map edge.</summary>
-    static Transform CreateWorld()
+    public static Transform CreateWorld()
     {
         var world = new GameObject("World").transform;
         Island(world, new Vector3(28, 0, 34), 2.6f, 20f, 3);
@@ -172,7 +319,7 @@ public static class SeaMapBuilder
         return world;
     }
 
-    static Camera CreateCamera()
+    public static Camera CreateCamera()
     {
         var camGo = new GameObject("Main Camera") { tag = "MainCamera" };
         var cam = camGo.AddComponent<Camera>();
@@ -188,7 +335,7 @@ public static class SeaMapBuilder
         return cam;
     }
 
-    static void CreatePostVolume()
+    public static void CreatePostVolume()
     {
         var volume = new GameObject("Global Volume").AddComponent<Volume>();
         volume.isGlobal = true;
@@ -196,7 +343,7 @@ public static class SeaMapBuilder
     }
 
     // ------------------------------------------------------------------ helpers
-    static GameObject Place(string path, Transform parent, Vector3 pos, float yaw, float scale)
+    public static GameObject Place(string path, Transform parent, Vector3 pos, float yaw, float scale)
     {
         var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
         var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);

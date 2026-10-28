@@ -117,3 +117,174 @@ Sailing into a barrel collects it and adds its money to the score.
 **Check:** Unity compiled with no errors. Rebuilt the scene (22 small + 6 big barrels
 confirmed in the scene file). Played it in the editor: money increases by +10 / +50,
 the floating popup appears and the barrel counter updates.
+
+---
+
+## Step 4 - Game flow: start, playing, win, lose
+
+**Goal:** the midterm guidelines ask for clear win **and lose** conditions and a full
+game flow (start, gameplay, success/failure, restart). Until now there was no way to lose
+and no start screen.
+
+**How it was done:**
+- New `Assets/Scripts/Game/GameState.cs`: one object in the scene that holds the current
+  phase: `Start -> Playing -> Won / Lost`.
+  - **Space / Enter** on the start screen begins the game.
+  - **Won** when every barrel is collected (this check moved here from the HUD).
+  - **Lost** when the enemy calls `GameState.Lose()`.
+  - **R** restarts the level at any time. After a restart the start screen is skipped,
+    so retrying is fast.
+- `PlayerShipInput.cs`: the ship ignores the keyboard unless the phase is `Playing`.
+  R moved to `GameState`.
+- `ShipController.cs`: new `Sink()`. The ship stops, and over 3 seconds the model goes
+  down 4 units and tips over (clear visual feedback that you lost).
+- `MoneyBarrel.cs`: barrels can only be collected while `Playing`.
+
+---
+
+## Step 5 - Start, win and lose screens
+
+**File:** `Assets/Scripts/UI/GameHud.cs` (same simple IMGUI HUD as before).
+
+- **Start screen:** dark overlay with the title, the goal (small barrels +10 near the
+  start, big barrels +50 far out), the danger (a pirate ship guards the open sea, you are
+  safe inside the red buoys), the controls, and a pulsing "Press SPACE to start".
+  This covers *onboarding* and *clear goals and rules* from the guidelines.
+- **Win screen:** "You collected every barrel!" + final money + "press R to play again".
+- **Lose screen:** "The pirates sank your ship!" + money collected + "press R to play again".
+- **Chase warning:** while the enemy is chasing you, a red pulsing
+  "PIRATES ARE CHASING YOU!" appears at the top of the screen (feedback).
+
+## Step 6 - The enemy pirate ship
+
+**File:** `Assets/Scripts/Enemy/EnemyShipAI.cs`
+
+The enemy uses the same `ShipController` as the player (same movement and floating),
+and a small state machine decides its throttle and steering:
+
+| Mode | Behaviour |
+|---|---|
+| **Patrol** | Sails around a circle of radius 80, where the big +50 barrels are, at 60% speed. It aims at a point a little ahead on the circle. |
+| **Chase** | Starts when the player comes within **25** units and is outside the safe zone. Full speed toward the player. |
+| **Back to patrol** | When the player is more than **45** units away, or reaches the safe zone. |
+| **Catch** | Chasing and closer than **4.5** units: calls `GameState.Lose()`, which sinks the player's ship. |
+
+Other rules:
+- The enemy is **slower** (max speed 8) than the player (10) and turns slower
+  (55 vs 70 deg/s), so a player who reacts early can escape. Getting stuck near an
+  island is how you get caught.
+- It never enters the safe zone (radius 28 around the start).
+- **Obstacle avoidance:** a sphere cast 14 units ahead; if it hits an island or rock,
+  the ship steers away from it, more strongly the closer it is.
+- `EnemyShipAI.AnyChasing` tells the HUD to show the chase warning.
+
+These numbers are a first guess and will be tuned after playtesting.
+
+---
+
+## Step 7 - Enemy and safe zone in the map
+
+**File:** `Assets/Editor/SceneBuilders/SeaMapBuilder.cs`, then the scene was rebuilt.
+
+- **GameState** object added to the scene.
+- **PirateShip:** the Kenney `ship-pirate-medium` model (bigger than the player's ship)
+  with `ShipController` (max speed 8, turn rate 55) and `EnemyShipAI`.
+  It starts at (0, 0, 80) on its patrol circle.
+- **SafeZone:** 20 red-and-white buoys in a circle of radius 28 around the start,
+  built from Unity primitives (cylinders + a sphere) with the new materials
+  `Assets/Materials/Buoy.mat` and `BuoyStripe.mat`. They float with `Bobber` and have
+  no colliders, so the player sails through them. They show where the enemy will not follow.
+
+**Map layout now (distance from the start):**
+```
+ 0 ---- 28 ------------------ 60 ------ 80 ------ 95
+ start  | safe zone ends       | big     | enemy   | map edge
+        | small barrels (12-70)| barrels | patrol  |
+```
+
+**Check:** Unity compiled with no errors. Automated test in Play mode through the
+editor bridge: the enemy patrols at speed 4.8, switches to Chase at speed 8 when the
+player is 15 units away, and follows the player. The full game (start screen, chase,
+being caught and sinking, restart) was played by hand in the editor.
+
+![Pirate ship chasing the player](images/pirate-chase.png)
+
+---
+
+## Step 8 - README update and editor bridge port
+
+- `README.md`: new goal section (win, lose, safe zone, how the pirates behave),
+  Space to start, new folders, chase screenshot, updated "Planned" list.
+- Editor tooling: the bridge moved from port 17890 to **17891**. After a Unity restart, a
+  leftover process still held 17890 and blocked the bridge. This does not affect the game.
+
+---
+
+## Step 9 - New UI (uGUI + TextMeshPro) and a separate main menu
+
+**Goal:** the first HUD used Unity's IMGUI (plain text boxes drawn from code). It worked
+but looked rough. We replaced it with a simpler, cleaner UI and added a main menu
+outside the game scene.
+
+### Style
+- One consistent look for every screen: **dark navy rounded cards**, **gold** for
+  money and the main buttons, white text. Red only for danger.
+- Fonts from the TextMesh Pro examples that ship with Unity:
+  **Bangers** (titles and numbers) and **Oswald Bold** (everything else).
+- Rounded corners: `UiKit` draws a white rounded square into `Assets/UI/Rounded.png`
+  and imports it as a 9-sliced sprite, so one small image fits every card and button.
+  `Assets/UI/Circle.png` is used for the coin.
+
+### Editor helper - `Assets/Editor/SceneBuilders/UiKit.cs`
+Small functions the scene builders call: `Canvas`, `Rect`, `Panel`, `Text`, `Button`,
+`EventSystem`. They keep every screen in the same style without repeating code.
+
+### In-game HUD - `GameHud.cs` (rewritten) + `SeaMapBuilder.CreateHud()`
+| Element | What it shows |
+|---|---|
+| Money pill (top left) | Gold coin + money. The number **counts up** instead of jumping, and the pill **pops** on every pickup (feedback). |
+| Barrels pill (top right) | Barrels collected / total |
+| Hint (bottom) | "Collect barrels / Avoid the pirate ship / Red buoys = safe zone / Esc = pause". Fades out after 6 seconds (onboarding without blocking play). |
+| Chase banner (top) | Red "PIRATES ARE CHASING YOU!", pulsing while the enemy chases |
+| "+10" popups | Gold number with a dark outline that rises from the barrel and fades |
+| Pause panel (Esc) | RESUME / RESTART / MAIN MENU. The game is frozen with `Time.timeScale = 0`. |
+| End panel | "YOU WIN!" (gold) or "SHIP SUNK!" (red), money and barrels, best score or "New best score!", PLAY AGAIN / MAIN MENU |
+
+The old speed readout and the in-game start screen were removed. The main menu
+now explains the rules, so the level starts right away.
+
+### Game flow changes - `GameState.cs`
+- Phases are now `Playing, Paused, Won, Lost`. Esc toggles pause.
+- `Restart()` reloads the level. `ToMenu()` loads the main menu.
+- When a run ends, the money is compared with the best score saved in
+  `PlayerPrefs` ("BestMoney") and saved if it is higher.
+
+### Main menu - `MainMenu.unity`
+- Built by `Assets/Editor/SceneBuilders/MainMenuBuilder.cs`
+  (**Tools > Boat Game > Build Main Menu**), adapted from our pirate prototype's menu.
+- Background: the same sea, islands and buoys as the game, the player ship, the pirate
+  ship and some barrels floating, with a slowly orbiting camera (`MenuOrbitCamera.cs`).
+- Left card: title, tagline, **PLAY**, **HOW TO PLAY**, **QUIT**, and the best score.
+- How to Play card: the goal, barrel values, the pirate and the safe zone, controls, BACK.
+- `MainMenu.cs` wires the buttons. Quit also stops Play mode in the editor.
+- Build order is now `MainMenu` (0) then `SeaMap` (1). `SeaMapBuilder.SetBuildScenes()`
+  keeps this order whichever builder runs.
+
+### Other files
+- TextMesh Pro font assets (Bangers SDF, Oswald Bold SDF): Unity upgraded their format
+  when they were first used. These are not our edits.
+
+**Check:** compiled with no errors. Screenshots of every screen were rendered from the
+editor (below). The whole flow was played by hand: menu, how to play, play, pickups,
+pause, getting caught, end panel, back to the menu.
+
+| | |
+|---|---|
+| ![Main menu](images/main-menu.png) | ![How to play](images/how-to-play.png) |
+| ![HUD](images/hud.png) | ![Pause](images/pause.png) |
+| ![End screen](images/end-screen.png) | |
+
+## Step 10 - README for the new UI
+
+`README.md`: start from `MainMenu.unity`, Esc to pause, the main menu and UI folders,
+new screenshots, best score, and font credits (Bangers and Oswald, SIL Open Font License).
